@@ -1,7 +1,7 @@
 local ADDON_NAME = ...
 local ADDON_VERSION = GetAddOnMetadata(ADDON_NAME, "Version")
 
-local GoldTrack = {}
+GoldTrack = {}
 GoldTrack.__index = GoldTrack
 GoldTrack.debug_ = true
 
@@ -46,13 +46,67 @@ end
 -- Function: process_money_change
 -- Descr: Creates a log entry for the money changes
 function GoldTrack:process_money_change(change, money_after)
-   table.insert(self.realm_db.gold_log, {
-                   timestamp = date(),
+   table.insert(self.realm_db[self.player.faction].gold_log, {
+                   timestamp = time(),
                    character = self.player.name,
                    realm = self.player.realm,
                    change = change,
                    money_after = money_after
    })
+end
+
+-- Function: earned_after
+-- Descr: Return amount of money earned after the specified time
+function GoldTrack:earned_after(timestamp)
+   local earned = 0
+   for i, entry in self:ripairs(self.realm_db[self.player.faction].gold_log) do
+
+      if entry.timestamp < timestamp then
+         break
+      end
+
+      if not entry.ignore and entry.change > 0 then
+         earned = earned + entry.change
+      end
+   end
+
+   return earned
+end
+
+-- Function: spent_after
+-- Descr: Return amount of money spent after specified time
+function GoldTrack:spent_after(timestamp)
+   local spent = 0
+   for i, entry in self:ripairs(self.realm_db[self.player.faction].gold_log) do
+
+      if entry.timestamp < timestamp then
+         break
+      end
+
+      if not entry.ignore and  entry.change < 0 then
+         spent = spent + entry.change
+      end
+   end
+
+   return spent
+end
+
+-- Function: balance_after
+-- Descr: Return balance after specified time
+function GoldTrack:balance_after(timestamp)
+   local balance = 0
+   for i, entry in self:ripairs(self.realm_db[self.player.faction].gold_log) do
+
+      if entry.timestamp < timestamp then
+         break
+      end
+
+      if not entry.ignore then
+         balance = balance + entry.change
+      end
+   end
+
+   return balance
 end
 
 ---------------------------
@@ -73,6 +127,25 @@ function GoldTrack:debug_print(msg)
    end
 end
 
+-- Function: ripairs
+-- Descr: reverse ipairs (from LUA website)
+function GoldTrack:ripairs(t)
+  local max = 1
+  while t[max] ~= nil do
+    max = max + 1
+  end
+  local function ripairs_it(t, i)
+    i = i-1
+    local v = t[i]
+    if v ~= nil then
+      return i,v
+    else
+      return nil
+    end
+  end
+  return ripairs_it, t, max
+end
+
 ------------------------
 ---- Event handlers ----
 ------------------------
@@ -86,8 +159,6 @@ function GoldTrack:ADDON_LOADED(addon)
       return
    end
 
-   self:debug_print("Loading...")
-
    if not GoldTrack_DB then
       GoldTrack_DB = {
          version = ADDON_VERSION
@@ -99,6 +170,7 @@ function GoldTrack:ADDON_LOADED(addon)
    local name, _  = UnitName("player")
    local _, class = UnitClass("player")
    local realm    = GetRealmName()
+   local faction  = UnitFactionGroup("player")
 
    local realm_uid = ""
    local connected_realms = GetAutoCompleteRealms() or { (realm:gsub("%s+", "")) }
@@ -110,36 +182,42 @@ function GoldTrack:ADDON_LOADED(addon)
 
    if not self.db[realm_uid] then
       self.db[realm_uid] = {
-         characters = {
+         Horde = {
+            characters = {
+            },
+            gold_log = {
+               
+            }
          },
-         gold_log = {
-            
+         Alliance = {
+            characters = {
+            },
+            gold_log = {
+               
+            }
          }
       }
    end
 
    self.realm_db = self.db[realm_uid]
 
-   if not self.realm_db.characters[name] then
-      self.realm_db.characters[name] = {
+   if not self.realm_db[faction].characters[name] then
+      self.realm_db[faction].characters[name] = {
          name = name,
          realm = realm,
          class = class,
-         faction = UnitFactionGroup("player"),
+
       }
    end
 
-   self.character_db = self.realm_db.characters[name]
+   self.character_db = self.realm_db[faction].characters[name]
 
    self.player = {
       name = name,
       class = class,
       realm = realm,
+      faction = faction,
    }
-
-   self:debug_print("Loading done!")
-   self:debug_print("Got player: " .. self.player.name)
-   self:debug_print("Got realm: " .. self.player.realm)
 end
 
 -- Event: PLAYER_ENTERING_WORLD
