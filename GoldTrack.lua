@@ -11,6 +11,17 @@ GoldTrack.events_ = {
    "PLAYER_MONEY"
 }
 
+GoldTrack.BALANCE = 1001
+GoldTrack.EARNED  = 1002
+GoldTrack.SPENT   = 1003
+
+GoldTrack.DAY   = 24 * 60 * 60
+GoldTrack.WEEK  = 7 * GoldTrack.DAY
+GoldTrack.MONTH = 30 * GoldTrack.DAY
+
+GoldTrack.tracking_type = GoldTrack.BALANCE
+GoldTrack.tracking_time = GoldTrack.DAY
+
 SLASH_GOLDTRACK1 = "/goldtrack"
 SLASH_GOLDTRACK2 = "/gt"
 
@@ -91,13 +102,17 @@ function GoldTrack:process_money_change(change, money_after)
 end
 
 function GoldTrack:update_mainframe()
-   GoldTrack_MainFrame_GoldText:SetText(coin_string(self:balance_24h()))
-end
 
--- Function: earned_last_24h
--- Descr: Return the amount of gold earned in last 24 hours
-function GoldTrack:balance_24h()
-   return self:balance_after(time() - 60 * 60 * 24)
+   local tracking = self.tracking_type
+   local timestamp = time() - self.tracking_time
+   local coins = 0
+
+   if     tracking == self.BALANCE then coins = self:balance_after(timestamp)
+   elseif tracking == self.EARNED  then coins = self:earned_after(timestamp)
+   elseif tracking == self.SPENT   then coins = self:spent_after(timestamp)
+   else end
+
+   GoldTrack_MainFrame_GoldText:SetText(coin_string(coins))
 end
 
 -- Function: earned_after
@@ -166,6 +181,16 @@ function GoldTrack:debug_print(msg)
    if true then
       self:print(msg)
    end
+end
+
+function GoldTrack:set_tracking_type(type)
+   self.tracking_type = type
+   self:update_mainframe()
+end
+
+function GoldTrack:set_tracking_time(time)
+   self.tracking_time = time
+   self:update_mainframe()
 end
 
 ------------------------

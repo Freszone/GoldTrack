@@ -9,7 +9,7 @@
 
      <Size><AbsDimension x="170" y="55" /></Size>
 
-     <Anchors><Anchor pont="CENTER" /></Anchors>
+     <Anchors><Anchor point="CENTER" /></Anchors>
 
      <Backdrop bgFile="Interface\FrameGeneral\UI-Background-Marble"
                edgeFile="Interface\DialogFrame\UI-DialogBox-Gold-Border" tile="false">
@@ -17,13 +17,14 @@
        <BackgroundInsets left="4" right="4" top="4" bottom="4"/>
      </Backdrop>
 
-     <TitleRegion setAllPoints="true" />
+     <!-- <TitleRegion setAllPoints="true" /> -->
 
    </Frame>
 
    <Frame name="GoldTrack_MainFrame" inherits="GoldTrack_FrameTemplate" alpha="0.8">
      <Frames>
      </Frames>
+
      <Layers>
        <Layer>
          <FontString name="$parent_GoldText" inherits="GameFontNormal" text="This is a test">
@@ -34,7 +35,26 @@
          </FontString>
        </Layer>
      </Layers>
+
+     <Scripts>
+       <OnMouseDown>
+         GoldTrack_MainFrame_OnMouseDown(self, button)
+       </OnMouseDown>
+       <OnMouseUp>
+         GoldTrack_MainFrame_OnMouseUp(self, button)
+       </OnMouseUp>
+     </Scripts>
    </Frame>
+
+   <Frame name="GoldTrack_MainMenu" inherits="UIDropDownMenuTemplate" id="1">
+     <Scripts>
+       <OnLoad>
+         UIDropDownMenu_Initialize(self, GoldTrack_MainMenu_OnLoad, "MENU")
+       </OnLoad>
+     </Scripts>
+   </Frame>
+
+
 </Ui>
 
 
