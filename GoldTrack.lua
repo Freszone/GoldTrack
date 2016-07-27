@@ -18,6 +18,39 @@ function SlashCmdList.GOLDTRACK(msg, edit)
    -- Handle commands here
 end
 
+---------------------------
+---- Utility functions ----
+---------------------------
+
+-- Function: ripairs
+-- Descr: reverse ipairs (from LUA website)
+local function ripairs(t)
+  local max = 1
+  while t[max] ~= nil do
+    max = max + 1
+  end
+  local function ripairs_it(t, i)
+    i = i-1
+    local v = t[i]
+    if v ~= nil then
+      return i,v
+    else
+      return nil
+    end
+  end
+  return ripairs_it, t, max
+end
+
+local function coin_string(money)
+	if money < 0 then
+		return "|cffff0000" .. GetCoinTextureString(abs(money)) .. "|r"
+	elseif money > 0 then
+		return "|cff00ff00" .. GetCoinTextureString(money) .. "|r"
+	else
+		return "|cffffffff" .. GetCoinTextureString(money) .. "|r"
+	end
+end
+
 --------------------------
 ---- Main addon logic ----
 --------------------------
@@ -32,8 +65,8 @@ end
 -- Descr: Creates the main frame for the addon and registers events
 --        for the frame
 function GoldTrack:create_mainframe()
-   self.frame = CreateFrame("Button" ,"GoldTrack_Frame", UIParent)
-   self.frame:Hide()
+   self.frame = GoldTrack_MainFrame
+   self.frame:Show()
 
    for _, event in ipairs(self.events_) do
       self.frame:RegisterEvent(event)
@@ -53,13 +86,25 @@ function GoldTrack:process_money_change(change, money_after)
                    change = change,
                    money_after = money_after
    })
+
+   self:update_mainframe()
+end
+
+function GoldTrack:update_mainframe()
+   GoldTrack_MainFrame_GoldText:SetText(coin_string(self:balance_24h()))
+end
+
+-- Function: earned_last_24h
+-- Descr: Return the amount of gold earned in last 24 hours
+function GoldTrack:balance_24h()
+   return self:balance_after(time() - 60 * 60 * 24)
 end
 
 -- Function: earned_after
 -- Descr: Return amount of money earned after the specified time
 function GoldTrack:earned_after(timestamp)
    local earned = 0
-   for i, entry in self:ripairs(self.realm_db[self.player.faction].gold_log) do
+   for i, entry in ripairs(self.realm_db[self.player.faction].gold_log) do
 
       if entry.timestamp < timestamp then
          break
@@ -77,7 +122,7 @@ end
 -- Descr: Return amount of money spent after specified time
 function GoldTrack:spent_after(timestamp)
    local spent = 0
-   for i, entry in self:ripairs(self.realm_db[self.player.faction].gold_log) do
+   for i, entry in ripairs(self.realm_db[self.player.faction].gold_log) do
 
       if entry.timestamp < timestamp then
          break
@@ -95,7 +140,7 @@ end
 -- Descr: Return balance after specified time
 function GoldTrack:balance_after(timestamp)
    local balance = 0
-   for i, entry in self:ripairs(self.realm_db[self.player.faction].gold_log) do
+   for i, entry in ripairs(self.realm_db[self.player.faction].gold_log) do
 
       if entry.timestamp < timestamp then
          break
@@ -109,10 +154,6 @@ function GoldTrack:balance_after(timestamp)
    return balance
 end
 
----------------------------
----- Utility functions ----
----------------------------
-
 -- Function: print
 -- Descr: Print the message in the default chat frame
 function GoldTrack:print(msg)
@@ -125,25 +166,6 @@ function GoldTrack:debug_print(msg)
    if true then
       self:print(msg)
    end
-end
-
--- Function: ripairs
--- Descr: reverse ipairs (from LUA website)
-function GoldTrack:ripairs(t)
-  local max = 1
-  while t[max] ~= nil do
-    max = max + 1
-  end
-  local function ripairs_it(t, i)
-    i = i-1
-    local v = t[i]
-    if v ~= nil then
-      return i,v
-    else
-      return nil
-    end
-  end
-  return ripairs_it, t, max
 end
 
 ------------------------
@@ -227,6 +249,8 @@ function GoldTrack:PLAYER_ENTERING_WORLD()
    if not self.player.money then
       self.player.money = GetMoney()
    end
+
+   self:update_mainframe()
 end
 
 -- Event: PLAYER_MONEY
@@ -238,7 +262,6 @@ function GoldTrack:PLAYER_MONEY()
    self:process_money_change(diff, money)
    self.player.money = money
 end
-
 
 -- Call initialize to setup the addon
 GoldTrack:initialize()

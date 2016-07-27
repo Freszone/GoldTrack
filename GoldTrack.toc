@@ -4,4 +4,5 @@
 ## Notes: Addon for tracking looted gold
 ## Author: Freszone
 ## SavedVariables: GoldTrack_DB
+GoldTrack.xml
 GoldTrack.lua
