@@ -7,7 +7,7 @@
           enableMouse="true" clampedToScreen="true" frameStrata="DIALOG"
           parent="UIParent" virtual="true">
 
-     <Size><AbsDimension x="170" y="55" /></Size>
+     <Size><AbsDimension x="165" y="45" /></Size>
 
      <Anchors><Anchor point="CENTER" /></Anchors>
 

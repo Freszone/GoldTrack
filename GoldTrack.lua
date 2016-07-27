@@ -188,9 +188,17 @@ function GoldTrack:set_tracking_type(type)
    self:update_mainframe()
 end
 
+function GoldTrack:check_tracking_type(type)
+   return self.tracking_type == type
+end
+
 function GoldTrack:set_tracking_time(time)
    self.tracking_time = time
    self:update_mainframe()
+end
+
+function GoldTrack:check_tracking_time(time)
+   return self.tracking_time == time
 end
 
 ------------------------
