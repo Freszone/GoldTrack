@@ -22,6 +22,31 @@ GoldTrack.MONTH = 30 * GoldTrack.DAY
 GoldTrack.tracking_type = GoldTrack.BALANCE
 GoldTrack.tracking_time = GoldTrack.DAY
 
+GoldTrack.tracking = {
+   ["type"] = "balance",
+   ["time"] = "day",
+   ["scope"] = "realm"
+}
+
+local tracking_types = {
+   ["balance"] = function(t, p) return GoldTrack:filter_log(t, true, true, p) end,
+   ["earned"] = function(t, p) return GoldTrack:filter_log(t, true, false, p) end,
+   ["spent"] = function(t, p) return GoldTrack:filter_log(t, false, true, p) end
+}
+
+local scope_types = {
+   ["character"] = function() return GoldTrack.player end,
+   ["realm"] = function() return nil end
+}
+
+local time_frames = {
+   ["hour"] = function() return 60 * 60 end,
+   ["day"] = function() return 24 * 60 * 60 end,
+   ["week"] = function() return 7 * 24 * 60 * 60 end,
+   ["month"] = function() return 30 * 24 * 60 * 60 end,
+   ["session"] = function() return time() - GoldTrack.session_start end
+}
+
 SLASH_GOLDTRACK1 = "/goldtrack"
 SLASH_GOLDTRACK2 = "/gt"
 
@@ -68,7 +93,7 @@ end
 
 -- Function: initialize
 -- Descr: Initialize the addon
-function GoldTrack:initialize()
+function GoldTrack:on_load()
    self:create_mainframe()
 end
 
@@ -102,71 +127,64 @@ function GoldTrack:process_money_change(change, money_after)
 end
 
 function GoldTrack:update_mainframe()
-
    local tracking = self.tracking_type
-   local timestamp = time() - self.tracking_time
-   local coins = 0
-
-   if     tracking == self.BALANCE then coins = self:balance_after(timestamp)
-   elseif tracking == self.EARNED  then coins = self:earned_after(timestamp)
-   elseif tracking == self.SPENT   then coins = self:spent_after(timestamp)
-   else end
+   local timeframe = time() - time_frames[self.tracking.time]()
+   local scope = scope_types[self.tracking.scope]()
+   local coins = tracking_types[self.tracking.type](timeframe, scope)
 
    GoldTrack_MainFrame_GoldText:SetText(coin_string(coins))
 end
 
--- Function: earned_after
--- Descr: Return amount of money earned after the specified time
-function GoldTrack:earned_after(timestamp)
-   local earned = 0
+function GoldTrack:filter_log(timestamp, earned, spent, player)
+   local gold = 0
    for i, entry in ripairs(self.realm_db[self.player.faction].gold_log) do
-
-      if entry.timestamp < timestamp then
-         break
-      end
-
-      if not entry.ignore and entry.change > 0 then
-         earned = earned + entry.change
-      end
-   end
-
-   return earned
-end
-
--- Function: spent_after
--- Descr: Return amount of money spent after specified time
-function GoldTrack:spent_after(timestamp)
-   local spent = 0
-   for i, entry in ripairs(self.realm_db[self.player.faction].gold_log) do
-
-      if entry.timestamp < timestamp then
-         break
-      end
-
-      if not entry.ignore and  entry.change < 0 then
-         spent = spent + entry.change
-      end
-   end
-
-   return spent
-end
-
--- Function: balance_after
--- Descr: Return balance after specified time
-function GoldTrack:balance_after(timestamp)
-   local balance = 0
-   for i, entry in ripairs(self.realm_db[self.player.faction].gold_log) do
-
       if entry.timestamp < timestamp then
          break
       end
 
       if not entry.ignore then
-         balance = balance + entry.change
+         if not player or (entry.character == player.name and entry.realm == player.realm) then
+            if (entry.change < 0 and spent) or (entry.change > 0 and earned) then
+               gold = gold + entry.change
+            end
+         end
       end
    end
 
-   return balance
+   return gold
+end
+
+function GoldTrack:reset_all()
+   GoldTrack_DB = {}
+
+   self:initialize()
+   self.player.money = GetMoney()
+   self:update_mainframe()
+end
+
+function GoldTrack:reset_realm()
+   self.realm_db[self.player.faction] = {
+      characters = {},
+      gold_log = {},
+   }
+
+   self:initialize()
+   self.player.money = GetMoney()
+   self:update_mainframe()
+end
+
+function GoldTrack:reset_character()
+   self.character_db = {}
+
+   for i,entry in ipairs(self.realm_db[self.player.faction].gold_log) do
+      if entry.character == self.player.name then
+         self.realm_db[self.player.faction].gold_log[i] = nil
+      end
+   end
+
+   self:initialize()
+   self.player.money = GetMoney()
+   self:update_mainframe()
 end
 
 -- Function: print
@@ -183,37 +201,30 @@ function GoldTrack:debug_print(msg)
    end
 end
 
-function GoldTrack:set_tracking_type(type)
-   self.tracking_type = type
+function GoldTrack:check_tracking_opt(opt, value)
+   return self.tracking[opt] == value
+end
+
+function GoldTrack:set_tracking_opt(opt, value)
+   self.tracking[opt] = value
    self:update_mainframe()
+   self:save_tracking_opts()
 end
 
-function GoldTrack:check_tracking_type(type)
-   return self.tracking_type == type
-end
-
-function GoldTrack:set_tracking_time(time)
-   self.tracking_time = time
-   self:update_mainframe()
-end
-
-function GoldTrack:check_tracking_time(time)
-   return self.tracking_time == time
-end
-
-------------------------
----- Event handlers ----
-------------------------
-
--- Event: ADDON_LOADED
--- Descr: Called when the addon is loaded, setup the
---        database and other required stuff
-function GoldTrack:ADDON_LOADED(addon)
-   -- Ignore events for other addons
-   if addon ~= ADDON_NAME then
-      return
+function GoldTrack:save_tracking_opts()
+   if not GoldTrack_Options then
+      GoldTrack_Options = {}
    end
+   GoldTrack_Options.tracking = self.tracking
+end
 
+function GoldTrack:load_tracking_opts()
+   if GoldTrack_Options then
+      self.tracking = GoldTrack_Options.tracking
+   end
+end
+
+function GoldTrack:initialize()
    if not GoldTrack_DB then
       GoldTrack_DB = {
          version = ADDON_VERSION
@@ -273,6 +284,25 @@ function GoldTrack:ADDON_LOADED(addon)
       realm = realm,
       faction = faction,
    }
+
+   self.session_start = time()
+end
+
+------------------------
+---- Event handlers ----
+------------------------
+
+-- Event: ADDON_LOADED
+-- Descr: Called when the addon is loaded, setup the
+--        database and other required stuff
+function GoldTrack:ADDON_LOADED(addon)
+   -- Ignore events for other addons
+   if addon ~= ADDON_NAME then
+      return
+   end
+
+   self:initialize()
+   self:load_tracking_opts()
 end
 
 -- Event: PLAYER_ENTERING_WORLD
@@ -297,4 +327,4 @@ function GoldTrack:PLAYER_MONEY()
 end
 
 -- Call initialize to setup the addon
-GoldTrack:initialize()
+GoldTrack:on_load()

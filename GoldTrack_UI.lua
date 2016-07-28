@@ -26,6 +26,14 @@ end
 ---- GoldTrack_MainMenu ----
 ----------------------------
 
+local function tracking_menu_option(opt, text, value)
+   return {
+      ["text"] = text,
+      ["checked"] = function() return GoldTrack:check_tracking_opt(opt, value) end,
+      ["func"] = function() GoldTrack:set_tracking_opt(opt, value) end
+   }
+end
+
 local GoldTrack_MainMenu_Info = {
    -- Level 1
    [1] = {
@@ -34,7 +42,7 @@ local GoldTrack_MainMenu_Info = {
          -- Title
          [1] = {
             ["isTitle"] = true,
-            ["text"] = "Display",
+            ["text"] = "Display settings",
             ["notCheckable"] = true
          },
 
@@ -50,8 +58,26 @@ local GoldTrack_MainMenu_Info = {
             ["notCheckable"] = true,
             ["hasArrow"] = true,
             ["menuList"] = 2,
-         }
-      }
+         },
+         [4] = {
+            ["text"] = "Scope",
+            ["notCheckable"] = true,
+            ["hasArrow"] = true,
+            ["menuList"] = 3,
+         },
+
+         [5] = {
+            ["isTitle"] = true,
+            ["text"] = "Other",
+            ["notCheckable"] = true
+         },
+         [6] = {
+            ["text"] = "Reset",
+            ["notCheckable"] = true,
+            ["hasArrow"] = true,
+            ["menuList"] = 4,
+         },
+      },
    },
 
    -- Level 2
@@ -59,38 +85,75 @@ local GoldTrack_MainMenu_Info = {
       -- List 1
       [1] = {
          -- Options
+         [1] = tracking_menu_option("type", "Balance", "balance"),
+         [2] = tracking_menu_option("type", "Earned", "earned"),
+         [3] = tracking_menu_option("type", "Spent", "spent"),
+      },
+      [2] = {
+         [1] = tracking_menu_option("time", "Session", "session"),
+         [2] = tracking_menu_option("time", "Hour", "hour"),
+         [3] = tracking_menu_option("time", "Day", "day"),
+         [4] = tracking_menu_option("time", "Week", "week"),
+         [5] = tracking_menu_option("time", "Month", "month"),
+      },
+      [3] = {
+         [1] = tracking_menu_option("scope", "Character", "character"),
+         [2] = tracking_menu_option("scope", "Realm", "realm"),
+      },
+      [4] = {
          [1] = {
-            ["text"] = "Balance",
-            ["checked"] = function() return GoldTrack:check_tracking_type(GoldTrack.BALANCE) end,
-            ["func"] = function() GoldTrack:set_tracking_type(GoldTrack.BALANCE) end,
+            ["text"] = "Character",
+            ["notCheckable"] = true,
+            ["hasArrow"] = true,
+            ["menuList"] = 2
          },
          [2] = {
-            ["text"] = "Earned",
-            ["checked"] = function() return GoldTrack:check_tracking_type(GoldTrack.EARNED) end,
-            ["func"] = function() GoldTrack:set_tracking_type(GoldTrack.EARNED) end,
+            ["text"] = "Realm",
+            ["notCheckable"] = true,
+            ["hasArrow"] = true,
+            ["menuList"] = 1
          },
          [3] = {
-            ["text"] = "Spent",
-            ["checked"] = function() return GoldTrack:check_tracking_type(GoldTrack.SPENT) end,
-            ["func"] = function() GoldTrack:set_tracking_type(GoldTrack.SPENT) end,
+            ["text"] = "All",
+            ["notCheckable"] = true,
+            ["hasArrow"] = true,
+            ["menuList"] = 3
+         }
+      }
+   },
+
+   [3] = {
+      [1] = {
+         [1] = {
+            ["text"] = "No",
+            ["notCheckable"] = true,
+         },
+         [2] = {
+            ["text"] = "Yes",
+            ["notCheckable"] = true,
+            ["func"] = function() GoldTrack:reset_realm() end
          }
       },
       [2] = {
          [1] = {
-            ["text"] = "1 day",
-            ["checked"] = function() return GoldTrack:check_tracking_time(GoldTrack.DAY) end,
-            ["func"] = function() GoldTrack:set_tracking_time(GoldTrack.DAY) end,
-
+            ["text"] = "No",
+            ["notCheckable"] = true,
          },
          [2] = {
-            ["text"] = "1 week",
-            ["checked"] = function() return GoldTrack:check_tracking_time(GoldTrack.WEEK) end,
-            ["func"] = function() GoldTrack:set_tracking_time(GoldTrack.WEEK) end,
+            ["text"] = "Yes",
+            ["notCheckable"] = true,
+            ["func"] = function() GoldTrack:reset_character() end
+         }
+      },
+      [3] = {
+         [1] = {
+            ["text"] = "No",
+            ["notCheckable"] = true,
          },
-         [3] = {
-            ["text"] = "1 month",
-            ["checked"] = function() return GoldTrack:check_tracking_time(GoldTrack.MONTH) end,
-            ["func"] = function() GoldTrack:set_tracking_time(GoldTrack.MONTH) end,
+         [2] = {
+            ["text"] = "Yes",
+            ["notCheckable"] = true,
+            ["func"] = function() GoldTrack:reset_all() end
          }
       }
    }
