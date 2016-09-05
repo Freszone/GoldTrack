@@ -95,6 +95,7 @@ local GoldTrack_MainMenu_Info = {
          [3] = tracking_menu_option("time", "Day", "day"),
          [4] = tracking_menu_option("time", "Week", "week"),
          [5] = tracking_menu_option("time", "Month", "month"),
+         [6] = tracking_menu_option("time", "Year", "year"),
       },
       [3] = {
          [1] = tracking_menu_option("scope", "Character", "character"),
@@ -102,22 +103,10 @@ local GoldTrack_MainMenu_Info = {
       },
       [4] = {
          [1] = {
-            ["text"] = "Character",
-            ["notCheckable"] = true,
-            ["hasArrow"] = true,
-            ["menuList"] = 2
-         },
-         [2] = {
-            ["text"] = "Realm",
-            ["notCheckable"] = true,
-            ["hasArrow"] = true,
-            ["menuList"] = 1
-         },
-         [3] = {
             ["text"] = "All",
             ["notCheckable"] = true,
             ["hasArrow"] = true,
-            ["menuList"] = 3
+            ["menuList"] = 1
          }
       }
    },
@@ -125,33 +114,7 @@ local GoldTrack_MainMenu_Info = {
    [3] = {
       [1] = {
          [1] = {
-            ["text"] = "No",
-            ["notCheckable"] = true,
-         },
-         [2] = {
-            ["text"] = "Yes",
-            ["notCheckable"] = true,
-            ["func"] = function() GoldTrack:reset_realm() end
-         }
-      },
-      [2] = {
-         [1] = {
-            ["text"] = "No",
-            ["notCheckable"] = true,
-         },
-         [2] = {
-            ["text"] = "Yes",
-            ["notCheckable"] = true,
-            ["func"] = function() GoldTrack:reset_character() end
-         }
-      },
-      [3] = {
-         [1] = {
-            ["text"] = "No",
-            ["notCheckable"] = true,
-         },
-         [2] = {
-            ["text"] = "Yes",
+            ["text"] = "Confirm",
             ["notCheckable"] = true,
             ["func"] = function() GoldTrack:reset_all() end
          }

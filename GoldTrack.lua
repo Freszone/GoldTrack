@@ -11,22 +11,13 @@ GoldTrack.events_ = {
    "PLAYER_MONEY"
 }
 
-GoldTrack.BALANCE = 1001
-GoldTrack.EARNED  = 1002
-GoldTrack.SPENT   = 1003
-
-GoldTrack.DAY   = 24 * 60 * 60
-GoldTrack.WEEK  = 7 * GoldTrack.DAY
-GoldTrack.MONTH = 30 * GoldTrack.DAY
-
-GoldTrack.tracking_type = GoldTrack.BALANCE
-GoldTrack.tracking_time = GoldTrack.DAY
-
 GoldTrack.tracking = {
    ["type"] = "balance",
    ["time"] = "day",
    ["scope"] = "realm"
 }
+
+GoldTrack.UI_scale = 1.0
 
 local tracking_types = {
    ["balance"] = function(t, p) return GoldTrack:filter_log(t, true, true, p) end,
@@ -44,14 +35,53 @@ local time_frames = {
    ["day"] = function() return 24 * 60 * 60 end,
    ["week"] = function() return 7 * 24 * 60 * 60 end,
    ["month"] = function() return 30 * 24 * 60 * 60 end,
+   ["year"] = function() return 365 * 24 * 60 * 60 end,
    ["session"] = function() return time() - GoldTrack.session_start end
 }
 
-SLASH_GOLDTRACK1 = "/goldtrack"
-SLASH_GOLDTRACK2 = "/gt"
+------------------------
+---- Slash commands ----
+------------------------
 
-function SlashCmdList.GOLDTRACK(msg, edit)
+local slash_commands = {
+   ["scale"] = function(args) GoldTrack:set_scale(args) end
+}
+
+SlashCmdList["GOLDTRACK_SLASHCMD"] = function(msg, edit)
    -- Handle commands here
+   local cmd = nil
+   local args = {}
+   for arg in string.gmatch(msg, "%S+") do
+      if not cmd then
+	 cmd = arg
+      else
+	 table.insert(args, arg)
+      end
+   end
+
+   if slash_commands[cmd] then
+      slash_commands[cmd](args)
+   else
+      GoldTrack:print("Unknown command \"" .. (cmd or "nil") .. "\"")
+   end
+
+end
+
+SLASH_GOLDTRACK_SLASHCMD1 = "/goldtrack"
+SLASH_GOLDTRACK_SLASHCMD2 = "/gt"
+
+function GoldTrack:set_scale(args)
+   local scale = tonumber(args[1])
+
+   if not scale then
+      self:print("Usage: /gt scale <scaling : float>")
+      self:print("Example: /gt scale 1.5")
+      return
+   end
+
+   self.UI_scale = scale
+   self:save_opts()
+   self.frame:SetScale(scale)
 end
 
 ---------------------------
@@ -127,7 +157,6 @@ function GoldTrack:process_money_change(change, money_after)
 end
 
 function GoldTrack:update_mainframe()
-   local tracking = self.tracking_type
    local timeframe = time() - time_frames[self.tracking.time]()
    local scope = scope_types[self.tracking.scope]()
    local coins = tracking_types[self.tracking.type](timeframe, scope)
@@ -160,6 +189,7 @@ function GoldTrack:reset_all()
    self:initialize()
    self.player.money = GetMoney()
    self:update_mainframe()
+   self:print("Gold log cleared!")
 end
 
 function GoldTrack:reset_realm()
@@ -208,19 +238,21 @@ end
 function GoldTrack:set_tracking_opt(opt, value)
    self.tracking[opt] = value
    self:update_mainframe()
-   self:save_tracking_opts()
+   self:tracking_opts()
 end
 
-function GoldTrack:save_tracking_opts()
+function GoldTrack:save_opts()
    if not GoldTrack_Options then
       GoldTrack_Options = {}
    end
    GoldTrack_Options.tracking = self.tracking
+   GoldTrack_Options.UI_scale = self.UI_scale
 end
 
-function GoldTrack:load_tracking_opts()
+function GoldTrack:load_opts()
    if GoldTrack_Options then
       self.tracking = GoldTrack_Options.tracking
+      self.UI_scale = GoldTrack_Options.UI_scale
    end
 end
 
@@ -302,7 +334,8 @@ function GoldTrack:ADDON_LOADED(addon)
    end
 
    self:initialize()
-   self:load_tracking_opts()
+   self:load_opts()
+   self.frame:SetScale(self.UI_scale)
 end
 
 -- Event: PLAYER_ENTERING_WORLD
