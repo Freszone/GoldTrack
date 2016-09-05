@@ -7,7 +7,7 @@
           enableMouse="true" clampedToScreen="true" frameStrata="DIALOG"
           parent="UIParent" virtual="true">
 
-     <Size><AbsDimension x="165" y="45" /></Size>
+     <Size><AbsDimension x="165" y="35" /></Size>
 
      <Anchors><Anchor point="CENTER" /></Anchors>
 
@@ -21,7 +21,7 @@
 
    </Frame>
 
-   <Frame name="GoldTrack_MainFrame" inherits="GoldTrack_FrameTemplate" alpha="0.8">
+   <Frame name="GoldTrack_MainFrame" inherits="GoldTrack_FrameTemplate" alpha="0.75">
      <Frames>
      </Frames>
 

@@ -17,7 +17,9 @@ GoldTrack.tracking = {
    ["scope"] = "realm"
 }
 
+GoldTrack.enabled = true
 GoldTrack.UI_scale = 1.0
+GoldTrack.UI_visible = true
 
 local tracking_types = {
    ["balance"] = function(t, p) return GoldTrack:filter_log(t, true, true, p) end,
@@ -44,7 +46,17 @@ local time_frames = {
 ------------------------
 
 local slash_commands = {
-   ["scale"] = function(args) GoldTrack:set_scale(args) end
+   ["scale"] = function(args) GoldTrack:set_scale(args) end,
+   ["show"] = function() GoldTrack:set_visible(true) end,
+   ["hide"] = function() GoldTrack:set_visible(false) end,
+   ["reset"] = function() GoldTrack:reset_realm() end,
+}
+
+local slash_help = {
+   ["scale"] = "Set the UI scaling",
+   ["show "] = "Show the UI",
+   ["hide "] = "Hide the UI",
+   ["reset"] = "Reset gold log on current realm and faction"
 }
 
 SlashCmdList["GOLDTRACK_SLASHCMD"] = function(msg, edit)
@@ -62,7 +74,13 @@ SlashCmdList["GOLDTRACK_SLASHCMD"] = function(msg, edit)
    if slash_commands[cmd] then
       slash_commands[cmd](args)
    else
-      GoldTrack:print("Unknown command \"" .. (cmd or "nil") .. "\"")
+      if cmd then
+	 GoldTrack:print("Unknown command \"" .. (cmd or "nil") .. "\"")
+      end
+      GoldTrack:print("Available commands:")
+      for k, v in pairs(slash_help) do
+	 GoldTrack:print("    " .. k .. " = " .. v)
+      end
    end
 
 end
@@ -71,7 +89,7 @@ SLASH_GOLDTRACK_SLASHCMD1 = "/goldtrack"
 SLASH_GOLDTRACK_SLASHCMD2 = "/gt"
 
 function GoldTrack:set_scale(args)
-   local scale = tonumber(args[1])
+   local scale = tonumber(args[next(args, nil)])
 
    if not scale then
       self:print("Usage: /gt scale <scaling : float>")
@@ -81,7 +99,13 @@ function GoldTrack:set_scale(args)
 
    self.UI_scale = scale
    self:save_opts()
-   self.frame:SetScale(scale)
+   self:refresh_mainframe()
+end
+
+function GoldTrack:set_visible(visible)
+   self.UI_visible = visible
+   self:save_opts()
+   self:refresh_mainframe()
 end
 
 ---------------------------
@@ -132,7 +156,6 @@ end
 --        for the frame
 function GoldTrack:create_mainframe()
    self.frame = GoldTrack_MainFrame
-   self.frame:Show()
 
    for _, event in ipairs(self.events_) do
       self.frame:RegisterEvent(event)
@@ -162,6 +185,15 @@ function GoldTrack:update_mainframe()
    local coins = tracking_types[self.tracking.type](timeframe, scope)
 
    GoldTrack_MainFrame_GoldText:SetText(coin_string(coins))
+end
+
+function GoldTrack:refresh_mainframe()
+   self.frame:SetScale(self.UI_scale)
+   if self.UI_visible then
+      self.frame:Show()
+   else
+      self.frame:Hide()
+   end
 end
 
 function GoldTrack:filter_log(timestamp, earned, spent, player)
@@ -238,7 +270,7 @@ end
 function GoldTrack:set_tracking_opt(opt, value)
    self.tracking[opt] = value
    self:update_mainframe()
-   self:tracking_opts()
+   self:save_opts()
 end
 
 function GoldTrack:save_opts()
@@ -247,13 +279,25 @@ function GoldTrack:save_opts()
    end
    GoldTrack_Options.tracking = self.tracking
    GoldTrack_Options.UI_scale = self.UI_scale
+   GoldTrack_Options.UI_visible = self.UI_visible
 end
 
 function GoldTrack:load_opts()
    if GoldTrack_Options then
       self.tracking = GoldTrack_Options.tracking
       self.UI_scale = GoldTrack_Options.UI_scale
+      self.UI_visible = GoldTrack_Options.UI_visible
    end
+end
+
+function GoldTrack:disable()
+   self.enabled = false
+   self:print("GoldTrack is now disabled for this session or until you enable it again!")
+end
+
+function GoldTrack:enable()
+   self.enabled = true
+   self:print("GoldTrack is now enabled!")
 end
 
 function GoldTrack:initialize()
@@ -262,6 +306,14 @@ function GoldTrack:initialize()
          version = ADDON_VERSION
       }
    end
+
+   if GoldTrack_DB["version"] ~= ADDON_VERSION then
+      GoldTrack_DB = {
+         version = ADDON_VERSION
+      }
+      self:print("Conflicting database version detected, database has been reset.")
+   end
+
 
    self.db = GoldTrack_DB
 
@@ -335,7 +387,7 @@ function GoldTrack:ADDON_LOADED(addon)
 
    self:initialize()
    self:load_opts()
-   self.frame:SetScale(self.UI_scale)
+   self:refresh_mainframe()
 end
 
 -- Event: PLAYER_ENTERING_WORLD
@@ -352,11 +404,13 @@ end
 -- Event: PLAYER_MONEY
 -- Descr: Called when player loses or gains money
 function GoldTrack:PLAYER_MONEY()
-   local money = GetMoney()
-   local diff = money - self.player.money
+   if self.enabled then
+      local money = GetMoney()
+      local diff = money - self.player.money
 
-   self:process_money_change(diff, money)
-   self.player.money = money
+      self:process_money_change(diff, money)
+      self.player.money = money
+   end
 end
 
 -- Call initialize to setup the addon

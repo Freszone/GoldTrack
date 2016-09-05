@@ -34,6 +34,14 @@ local function tracking_menu_option(opt, text, value)
    }
 end
 
+local function tracking_status_option(text, enabled)
+   return {
+      ["text"] = text,
+      ["checked"] = function() return GoldTrack.enabled == enabled end,
+      ["func"] = function() if enabled then GoldTrack:enable() else GoldTrack:disable() end end,
+   }
+end
+
 local GoldTrack_MainMenu_Info = {
    -- Level 1
    [1] = {
@@ -42,37 +50,31 @@ local GoldTrack_MainMenu_Info = {
          -- Title
          [1] = {
             ["isTitle"] = true,
-            ["text"] = "Display settings",
+            ["text"] = "Tracking options",
             ["notCheckable"] = true
          },
 
          -- Submenus
          [2] = {
-            ["text"] = "Type",
+            ["text"] = "Status",
             ["notCheckable"] = true,
             ["hasArrow"] = true,
-            ["menuList"] = 1
+            ["menuList"] = 1,
          },
          [3] = {
-            ["text"] = "Time",
+            ["text"] = "Type",
             ["notCheckable"] = true,
             ["hasArrow"] = true,
             ["menuList"] = 2,
          },
          [4] = {
-            ["text"] = "Scope",
+            ["text"] = "Time",
             ["notCheckable"] = true,
             ["hasArrow"] = true,
             ["menuList"] = 3,
          },
-
          [5] = {
-            ["isTitle"] = true,
-            ["text"] = "Other",
-            ["notCheckable"] = true
-         },
-         [6] = {
-            ["text"] = "Reset",
+            ["text"] = "Scope",
             ["notCheckable"] = true,
             ["hasArrow"] = true,
             ["menuList"] = 4,
@@ -84,12 +86,16 @@ local GoldTrack_MainMenu_Info = {
    [2] = {
       -- List 1
       [1] = {
+	 [1] = tracking_status_option("Enabled", true),
+	 [2] = tracking_status_option("Disabled", false)
+      },
+      [2] = {
          -- Options
          [1] = tracking_menu_option("type", "Balance", "balance"),
          [2] = tracking_menu_option("type", "Earned", "earned"),
          [3] = tracking_menu_option("type", "Spent", "spent"),
       },
-      [2] = {
+      [3] = {
          [1] = tracking_menu_option("time", "Session", "session"),
          [2] = tracking_menu_option("time", "Hour", "hour"),
          [3] = tracking_menu_option("time", "Day", "day"),
@@ -97,29 +103,11 @@ local GoldTrack_MainMenu_Info = {
          [5] = tracking_menu_option("time", "Month", "month"),
          [6] = tracking_menu_option("time", "Year", "year"),
       },
-      [3] = {
+      [4] = {
          [1] = tracking_menu_option("scope", "Character", "character"),
          [2] = tracking_menu_option("scope", "Realm", "realm"),
       },
-      [4] = {
-         [1] = {
-            ["text"] = "All",
-            ["notCheckable"] = true,
-            ["hasArrow"] = true,
-            ["menuList"] = 1
-         }
-      }
    },
-
-   [3] = {
-      [1] = {
-         [1] = {
-            ["text"] = "Confirm",
-            ["notCheckable"] = true,
-            ["func"] = function() GoldTrack:reset_all() end
-         }
-      }
-   }
 }
 
 function GoldTrack_MainMenu_OnLoad(self, level, menuList)
